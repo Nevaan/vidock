@@ -17,6 +17,30 @@ function! s:CheckDocker() abort
   return l:isDockerNotRunning
 endfunction
 
+" print main menu
+function! s:MainMenu() abort
+  execute 'normal 4G'
+  setlocal ma
+  execute 'normal! o'
+
+  execute 'normal! o1. List images'
+  execute 'normal! o2. List containers'
+
+  setlocal noma
+endfunction
+
+"
+function! s:CursorMoveHandler() abort
+  let l:MyLine=line('.')
+
+  if l:MyLine>5
+    setlocal cursorline
+    echomsg 'Cursor mooove: ' . l:MyLine
+  else
+    setlocal nocursorline
+  endif
+endfunction
+
 " quit script if docker enigne is down
 if s:CheckDocker() 
   call s:PrintErr('Docker engine is not running.')
@@ -25,7 +49,7 @@ endif
 
 echom "Welcome to ViDock" 
 
-topleft vnew
+topleft 40vnew
 
 " 'q' shortcut to exit instantly
 nnoremap q :q<CR>
@@ -37,6 +61,7 @@ setlocal buftype=nofile
 setlocal bufhidden=hide
 setlocal noswapfile
 setlocal nobl
+setlocal winfixwidth
 
 let docker_version = system('docker -v')
 
@@ -46,3 +71,7 @@ call append(3, split(docker_version, '\v\n'))
 
 " disable file modification
 setlocal noma
+
+setlocal ma
+call s:MainMenu()
+autocmd CursorMoved <buffer> call s:CursorMoveHandler()
