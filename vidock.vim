@@ -41,6 +41,20 @@ function! s:CursorMoveHandler() abort
   endif
 endfunction
 
+function! s:EnterHandler() abort
+  enew 
+  setlocal nonumber
+  setlocal buftype=nofile
+  setlocal noswapfile
+  setlocal noma 
+endfunction
+
+function! s:QuitViDock() abort
+  let l:currB = bufnr("%")
+  b vidockMain
+  execute 'bdelete '.l:currB
+endfunction
+
 " quit script if docker enigne is down
 if s:CheckDocker() 
   call s:PrintErr('Docker engine is not running.')
@@ -49,21 +63,22 @@ endif
 
 echom "Welcome to ViDock" 
 
-topleft 40vnew
+topleft 40vnew vidockMain
 
 " 'q' shortcut to exit instantly
-nnoremap q :q<CR>
+nnoremap q :call <SID>QuitViDock() <cr>
 " do nothin on visual-mode shortcut
 nnoremap v <Nop>
 
 setlocal nonumber
 setlocal buftype=nofile
-setlocal bufhidden=hide
 setlocal noswapfile
-setlocal nobl
 setlocal winfixwidth
+setlocal hidden
 
 let docker_version = system('docker -v')
+
+setlocal ma
 
 call append(0, 'Welcome to ViDock')
 call append(2, 'Your Docker:')
@@ -75,3 +90,5 @@ setlocal noma
 setlocal ma
 call s:MainMenu()
 autocmd CursorMoved <buffer> call s:CursorMoveHandler()
+nnoremap <cr> :call <SID>EnterHandler() <cr>
+
