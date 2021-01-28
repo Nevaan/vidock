@@ -72,42 +72,94 @@ function! s:ToggleShowAllContainers() abort
     let b:ShowAllToggle = 1
   endif
 
+
+  call s:drawContainerList()
+
+endfunction
+
+function! s:drawContainerList() abort
+
   if b:ShowAllToggle
-    let b:containers = systemlist('docker ps -a --format "{{.ID}} {{.Image}} {{.State}}"')
+    let b:containers = systemlist('docker ps -a --format "{{.ID}} {{.Names}} {{.Image}} {{.State}}"')
   else
-    let b:containers = systemlist('docker ps --format "{{.ID}} {{.Image}} {{.State}}"')
+    let b:containers = systemlist('docker ps --format "{{.ID}} {{.Names}} {{.Image}} {{.State}}"')
   endif
 
-  let l:lineIdx = 2
+  let l:lineIdx = 5
+  let l:afterIdx = (l:lineIdx + 1)
+
+  let b:containers = sort(b:containers, 's:sortContainers')
 
   setlocal ma 
 
   let l:buffL = line('$')
-  if l:buffL>2
-    execute 'normal 3GVGd' 
-    call append(1, '')
+  if l:buffL>l:lineIdx
+    execute 'normal '.(l:lineIdx+1).'GVGd' 
+    call append((l:lineIdx-1), '')
   endif
 
   if len(b:containers) == 0
-    call append(2, 'No containers to display')
+    call append(l:lineIdx, 'No containers to display')
   else
-    for x in reverse(b:containers)[0:-1]
+    for x in b:containers[0:-1]
        call append(l:lineIdx, x)
        let l:lineIdx += 1
     endfor
   endif
   setlocal noma
+  
+  execute 'normal '.(l:afterIdx).'G'
+endfunction
+
+fu! s:sortContainers(fst, snd)
+  let fs = split(a:fst)[3]
+  let ss = split(a:snd)[3]
+
+  let l:run = 'running'
+  let l:exit = 'exited'
+
+  if (fs == l:run && ss == l:run) || ( fs == l:exit && ss == l:exit)
+    return 0
+  elseif ss == l:run
+    return 1
+  elseif fs == l:run
+    return -1
+  endif
+
+endfunction
+
+function! s:StartStopContainer() abort
+
+  let l:curLine = line('.')
+  let l:container = getline(line('.'))
+  let l:splittedC = split(l:container)
+
+  let l:state = l:splittedC[3]  
+  let l:id = l:splittedC[0]
+
+  if l:state == 'running'
+    echo 'Stopping: '.l:id
+    call system('docker stop '.l:id) 
+  elseif l:state == 'exited'
+    echo 'Starting: '.l:id
+    call system('docker start '.l:id) 
+  endif
+
+  call s:drawContainerList()
 
 endfunction
 
 function! s:ListContainersMenu() abort
   call append(0, 'ViDock::Containers')
+  call append(1, 'Commands: ')
+  call append(2, 'a - toggle active/all')
+  call append(3, 's - start/stop container')
 
   let b:ShowAllToggle = 1
 
   call s:ToggleShowAllContainers()
   nnoremap <buffer> a :call <SID>ToggleShowAllContainers()<cr>
-
+  nnoremap <buffer> s :call <SID>StartStopContainer()<cr>
 endfunction
 
 function! s:QuitViDock() abort
