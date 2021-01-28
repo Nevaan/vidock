@@ -51,8 +51,10 @@ function! s:EnterHandler() abort
   setlocal noswapfile
 
   if w:MyLine == 6
+    file imagesList
     call s:ListImagesMenu()  
   elseif w:MyLine == 7
+    file containerList
     call s:ListContainersMenu() 
   endif
 
@@ -61,7 +63,7 @@ endfunction
 
 function! s:ListImagesMenu() abort
   call append(0, 'ViDock::Images')
-
+  nnoremap <buffer> q :call <SID>GoToView('vidockMain')<cr>
 endfunction
 
 function! s:ToggleShowAllContainers() abort
@@ -85,7 +87,7 @@ function! s:drawContainerList() abort
     let b:containers = systemlist('docker ps --format "{{.ID}} {{.Names}} {{.Image}} {{.State}}"')
   endif
 
-  let l:lineIdx = 5
+  let l:lineIdx = 6
   let l:afterIdx = (l:lineIdx + 1)
 
   let b:containers = sort(b:containers, 's:sortContainers')
@@ -130,7 +132,6 @@ endfunction
 
 function! s:StartStopContainer() abort
 
-  let l:curLine = line('.')
   let l:container = getline(line('.'))
   let l:splittedC = split(l:container)
 
@@ -149,23 +150,48 @@ function! s:StartStopContainer() abort
 
 endfunction
 
+function! s:ShowContainerInfo() abort
+
+
+  let l:container = getline(line('.'))
+  let l:splittedC = split(l:container)
+
+  echo l:splittedC[0]
+
+  enew 
+  setlocal nonumber
+  setlocal buftype=nofile
+  setlocal noswapfile
+  call append(0, l:splittedC[0])
+  
+  nnoremap <buffer> q :call <SID>GoToView('containerList')<cr>
+
+endfunction
+
 function! s:ListContainersMenu() abort
   call append(0, 'ViDock::Containers')
   call append(1, 'Commands: ')
   call append(2, 'a - toggle active/all')
   call append(3, 's - start/stop container')
+  call append(4, 'i - container details')
 
   let b:ShowAllToggle = 1
 
   call s:ToggleShowAllContainers()
   nnoremap <buffer> a :call <SID>ToggleShowAllContainers()<cr>
   nnoremap <buffer> s :call <SID>StartStopContainer()<cr>
+  nnoremap <buffer> i :call <SID>ShowContainerInfo()<cr>
+  nnoremap <buffer> q :call <SID>GoToView('vidockMain')<cr>
 endfunction
 
 function! s:QuitViDock() abort
-  let l:currB = bufnr("%")
-  b vidockMain
-  execute 'bdelete '.l:currB
+  execute 'bdelete vidockMain'
+endfunction
+
+function! s:GoToView(viewName) abort
+  let l:current = bufnr('%')
+  execute 'b '.bufnr(a:viewName)
+  execute 'bdelete '.l:current
 endfunction
 
 " quit script if docker enigne is down
@@ -179,7 +205,7 @@ echom "Welcome to ViDock"
 topleft 40vnew vidockMain
 
 " 'q' shortcut to exit instantly
-nnoremap q :call <SID>QuitViDock() <cr>
+nnoremap <buffer> q :call <SID>QuitViDock() <cr>
 " do nothin on visual-mode shortcut
 nnoremap v <Nop>
 
@@ -203,5 +229,5 @@ setlocal noma
 setlocal ma
 call s:MainMenu()
 autocmd CursorMoved <buffer> call s:CursorMoveHandler()
-nnoremap <cr> :call <SID>EnterHandler() <cr>
+nnoremap <buffer> <cr> :call <SID>EnterHandler() <cr>
 
