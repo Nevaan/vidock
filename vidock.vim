@@ -152,19 +152,51 @@ endfunction
 
 function! s:ShowContainerInfo() abort
 
-
   let l:container = getline(line('.'))
   let l:splittedC = split(l:container)
-
-  echo l:splittedC[0]
+  let l:cid = l:splittedC[1]
 
   enew 
+  file contanerInfo
   setlocal nonumber
   setlocal buftype=nofile
   setlocal noswapfile
-  call append(0, l:splittedC[0])
+
+  let b:cid = l:cid  
+
+  call append(0, 'ViDock::Containers::Details')
+  call append(1, ' Showing: '.b:cid)
+  call append(2, '')
+  call append(3, 'Commands: ')
+  call append(4, 'r - refresh')  
+  call append(5, '')
+  call s:RefreshContainerInfo(b:cid)
   
+  nnoremap <buffer> r :call <SID>RefreshContainerInfo(b:cid)<cr>
   nnoremap <buffer> q :call <SID>GoToView('containerList')<cr>
+
+endfunction
+
+function! s:RefreshContainerInfo(cid) abort
+  let l:cDetails = split(system('docker inspect -f "{{.Created}}#S#{{.State.Status}}#S#{{.State.StartedAt}}#S#{{.State.FinishedAt}}#S#{{.RestartCount}}#S#{{.Mounts}}#S#{{.Config.ExposedPorts}}#S#{{.NetworkSettings.IPAddress}}" '.a:cid), "#S#")
+
+  execute 'normal 6GVGd'
+  call append(5, '') 
+  let l:created = l:cDetails[0]
+  let l:status = l:cDetails[1]
+  let l:start = l:cDetails[2]
+  let l:lastShut = l:cDetails[3]
+  let l:restartCount = l:cDetails[4]
+  let l:mounts = l:cDetails[5]
+  let l:ports = l:cDetails[6]
+  let l:ip = substitute(l:cDetails[7], '\v\n', '', 'all')
+
+  call append(6, 'Status: '.l:status)
+  call append(7, 'Created: '.l:created)
+  call append(8, 'Last start: '.l:start)
+  call append(9, 'Last stop: '.l:lastShut)
+  call append(10, 'Restarted '.l:restartCount.' times')
+  call append(11, 'IP Address: '.l:ip)
 
 endfunction
 
