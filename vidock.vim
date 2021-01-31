@@ -170,6 +170,8 @@ function! s:ShowContainerInfo() abort
   call append(3, 'Commands: ')
   call append(4, 'r - refresh')  
   call append(5, '')
+  set noma
+
   call s:RefreshContainerInfo(b:cid)
   
   nnoremap <buffer> r :call <SID>RefreshContainerInfo(b:cid)<cr>
@@ -179,7 +181,7 @@ endfunction
 
 function! s:RefreshContainerInfo(cid) abort
   let l:cDetails = split(system('docker inspect -f "{{.Created}}#S#{{.State.Status}}#S#{{.State.StartedAt}}#S#{{.State.FinishedAt}}#S#{{.RestartCount}}#S#{{.Mounts}}#S#{{.Config.ExposedPorts}}#S#{{.NetworkSettings.IPAddress}}" '.a:cid), "#S#")
-
+  set ma
   execute 'normal 6GVGd'
   call append(5, '') 
   let l:created = l:cDetails[0]
@@ -198,6 +200,7 @@ function! s:RefreshContainerInfo(cid) abort
   call append(10, 'Restarted '.l:restartCount.' times')
   call append(11, 'IP Address: '.l:ip)
 
+  set noma
 endfunction
 
 function! s:ListContainersMenu() abort
