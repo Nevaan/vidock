@@ -163,14 +163,13 @@ function! s:ShowContainerInfo() abort
   setlocal noswapfile
 
   let b:cid = l:cid  
-
+  set ma
   call append(0, 'ViDock::Containers::Details')
   call append(1, ' Showing: '.b:cid)
   call append(2, '')
   call append(3, 'Commands: ')
   call append(4, 'r - refresh')  
   call append(5, '')
-  set noma
 
   call s:RefreshContainerInfo(b:cid)
   
@@ -180,7 +179,7 @@ function! s:ShowContainerInfo() abort
 endfunction
 
 function! s:RefreshContainerInfo(cid) abort
-  let l:cDetails = split(system('docker inspect -f "{{.Created}}#S#{{.State.Status}}#S#{{.State.StartedAt}}#S#{{.State.FinishedAt}}#S#{{.RestartCount}}#S#{{.Mounts}}#S#{{.Config.ExposedPorts}}#S#{{.NetworkSettings.IPAddress}}" '.a:cid), "#S#")
+  let l:cDetails = split(system("docker inspect -f '{{.Created}}#S#{{.State.Status}}#S#{{.State.StartedAt}}#S#{{.State.FinishedAt}}#S#{{.RestartCount}}#S#{{range .Mounts}}{{.Type}}#MS#{{.Source}}#MS#{{.Destination}}#MSS#{{end}}#S#{{range $k,$v:=.NetworkSettings.Ports}}{{$k}}#PSV#{{range $v}}{{range $kk,$vv:=.}}{{$vv}}#PSVCC#{{end}}#PSVC#{{end}}#PS#{{end}}#S#{{.NetworkSettings.IPAddress}}' ".a:cid), "#S#")
   set ma
   execute 'normal 6GVGd'
   call append(5, '') 
@@ -199,11 +198,56 @@ function! s:RefreshContainerInfo(cid) abort
   call append(9, 'Last stop: '.l:lastShut)
   call append(10, 'Restarted '.l:restartCount.' times')
   call append(11, 'IP Address: '.l:ip)
+  call append(12, 'Mounted volumes:')
+
+  let l:lastLine = 13
+
+  for i in split(l:mounts, '#MSS#')
+    
+    let l:singleMount = split(i, '#MS#')
+    call append(l:lastLine, '  Type: '.l:singleMount[0]) 
+    let l:lastLine = l:lastLine + 1  
+
+    call append(l:lastLine, '    Host path: '.l:singleMount[1]) 
+    let l:lastLine = l:lastLine + 1  
+
+    call append(l:lastLine, '    Container path: '.l:singleMount[2]) 
+    let l:lastLine = l:lastLine + 1  
+
+    call append(l:lastLine, ' ')
+    let l:lastLine = l:lastLine + 1
+  endfor  
+
+  let l:lastLine = l:lastLine - 1
+  execute 'normal GGVd'
+
+  call append (l:lastLine, 'Mapped ports:')
+  let l:lastLine = l:lastLine + 1
+  
+  for x in split(l:ports, "#PS#")
+    let l:hostToContainerList = split(x, "#PSV#")
+    
+    call append (l:lastLine, '  [CONTAINER]'.l:hostToContainerList[0])
+    let l:lastLine = l:lastLine + 1
+    
+    if len(l:hostToContainerList)>1
+
+      for y in split(l:hostToContainerList[1], "#PSVC#")
+        let l:singleMap = split(y, "#PSVCC#")
+        call append (l:lastLine, '    [HOST]'.(l:singleMap[0]).'->'.(l:singleMap[1]))
+        let l:lastLine = l:lastLine + 1
+      endfor
+    else
+      call append (l:lastLine, '    exposed but not mapped')
+      let l:lastLine = l:lastLine + 1
+    endif
+  endfor
 
   set noma
 endfunction
 
 function! s:ListContainersMenu() abort
+  set ma
   call append(0, 'ViDock::Containers')
   call append(1, 'Commands: ')
   call append(2, 'a - toggle active/all')
