@@ -68,19 +68,43 @@ function! s:ListImagesMenu() abort
   call append(0, 'ViDock::Images')
   call append(1, 'Commands:')
   call append(2, 'r - refresh')
+  call append(3, 'p - pull')
   set noma
   call s:drawImagesList() 
  
   nnoremap <buffer> r :call <SID>drawImagesList()<cr>
+  nnoremap <buffer> p :call <SID>pullImage()<cr>
   nnoremap <buffer> q :call <SID>GoToView('vidockMain')<cr>
+endfunction
+
+function! s:pullImage() abort
+  call inputsave()
+  let l:imageName = input('Image name: ')
+  call inputrestore()
+  execute 'normal <cr>'
+  
+  if l:imageName == ''
+    echom 'You have to type image name!'
+  else
+    echom 'Trying to pull image '.l:imageName.'...'
+    let l:resp = system('docker pull -q '.l:imageName)
+    if stridx(l:resp, 'Error response from daemon') != -1 || stridx(l:resp, 'invalid reference format') != -1
+      echom 'Error while pulling the image'
+    else 
+      echom 'Succesfully pulled image '.l:imageName
+      call s:drawImagesList()
+    endif
+  endif
+   
+
 endfunction
 
 function! s:drawImagesList() abort
 
   let b:images = systemlist('docker image ls --format "{{.ID}}#S#{{.Repository}}:{{.Tag}}#S#{{.Size}}"')
   set ma 
-  execute 'normal 4GVGd'
-  call append(3, '') 
+  silent execute 'normal 5GVGd'
+  call append(4, '') 
 
   execute 'normal G'
   let l:lastLine = line('$')
@@ -101,6 +125,8 @@ function! s:drawImagesList() abort
     call append(l:lastLine, '')  
     let l:lastLine +=1
     call append(l:lastLine, 'Total space used: '.l:space.' MB')
+    
+    execute 'normal 6G'
   endif
 
   set noma
@@ -266,7 +292,12 @@ function! s:RefreshContainerInfo(cid) abort
 
   call append (l:lastLine, 'Mapped ports:')
   let l:lastLine = l:lastLine + 1
-  
+ 
+  if len(split(l:ports, "#PS#")) == 0
+    call append(l:lastLine,'  No port mappings')
+    let l:lastLine = l:lastLine + 1
+  endif
+ 
   for x in split(l:ports, "#PS#")
     let l:hostToContainerList = split(x, "#PSV#")
     
