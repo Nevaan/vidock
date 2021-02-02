@@ -23,8 +23,10 @@ function! s:MainMenu() abort
   setlocal ma
   execute 'normal! o'
 
-  execute 'normal! o1. List images'
-  execute 'normal! o2. List containers'
+  execute 'normal! o List images'
+  execute 'normal! o List containers'
+
+  execute 'normal 6G'  
 
   setlocal noma
 endfunction
@@ -62,8 +64,46 @@ function! s:EnterHandler() abort
 endfunction
 
 function! s:ListImagesMenu() abort
+  set ma
   call append(0, 'ViDock::Images')
+  call append(1, 'Commands:')
+  call append(2, 'r - refresh')
+  set noma
+  call s:drawImagesList() 
+ 
+  nnoremap <buffer> r :call <SID>drawImagesList()<cr>
   nnoremap <buffer> q :call <SID>GoToView('vidockMain')<cr>
+endfunction
+
+function! s:drawImagesList() abort
+
+  let b:images = systemlist('docker image ls --format "{{.ID}}#S#{{.Repository}}:{{.Tag}}#S#{{.Size}}"')
+  set ma 
+  execute 'normal 4GVGd'
+  call append(3, '') 
+
+  execute 'normal G'
+  let l:lastLine = line('$')
+  let l:space = 0
+
+  if len(b:images) == 0
+    call append(l:lastLine, 'No images')
+  else
+    for x in b:images[0:-1]
+      let l:splittedI = split(x, "#S#")
+      call append(l:lastLine, l:splittedI[0].' '.l:splittedI[1].' '.l:splittedI[2])
+      let l:lastLine +=1
+      let l:space += substitute(l:splittedI[2],'MB', '', 'all')
+    endfor
+
+    call append(l:lastLine, 'l')
+    let l:lastLine +=1
+    call append(l:lastLine, '')  
+    let l:lastLine +=1
+    call append(l:lastLine, 'Total space used: '.l:space.' MB')
+  endif
+
+  set noma
 endfunction
 
 function! s:ToggleShowAllContainers() abort
