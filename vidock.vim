@@ -135,18 +135,20 @@ function! s:StartStopContainer() abort
   let l:container = getline(line('.'))
   let l:splittedC = split(l:container)
 
-  let l:state = l:splittedC[3]  
-  let l:id = l:splittedC[0]
+  if len(l:splittedC) == 4 && line('.') > 5 && len(b:containers)>0 
+    let l:state = l:splittedC[3]  
+    let l:id = l:splittedC[0]
 
-  if l:state == 'running'
-    echo 'Stopping: '.l:id
-    call system('docker stop '.l:id) 
-  elseif l:state == 'exited'
-    echo 'Starting: '.l:id
-    call system('docker start '.l:id) 
+    if l:state == 'running'
+      echo 'Stopping: '.l:id
+      call system('docker stop '.l:id) 
+    elseif l:state == 'exited'
+      echo 'Starting: '.l:id
+      call system('docker start '.l:id) 
+    endif
+
+    call s:drawContainerList()
   endif
-
-  call s:drawContainerList()
 
 endfunction
 
@@ -154,28 +156,29 @@ function! s:ShowContainerInfo() abort
 
   let l:container = getline(line('.'))
   let l:splittedC = split(l:container)
-  let l:cid = l:splittedC[1]
+  if len(l:splittedC) == 4 && line('.') > 5 && len(b:containers)>0
+    let l:cid = l:splittedC[1]
 
-  enew 
-  file contanerInfo
-  setlocal nonumber
-  setlocal buftype=nofile
-  setlocal noswapfile
+    enew 
+    file contanerInfo
+    setlocal nonumber
+    setlocal buftype=nofile
+    setlocal noswapfile
 
-  let b:cid = l:cid  
-  set ma
-  call append(0, 'ViDock::Containers::Details')
-  call append(1, ' Showing: '.b:cid)
-  call append(2, '')
-  call append(3, 'Commands: ')
-  call append(4, 'r - refresh')  
-  call append(5, '')
+    let b:cid = l:cid  
+    set ma
+    call append(0, 'ViDock::Containers::Details')
+    call append(1, ' Showing: '.b:cid)
+    call append(2, '')
+    call append(3, 'Commands: ')
+    call append(4, 'r - refresh')  
+    call append(5, '')
 
-  call s:RefreshContainerInfo(b:cid)
-  
-  nnoremap <buffer> r :call <SID>RefreshContainerInfo(b:cid)<cr>
-  nnoremap <buffer> q :call <SID>GoToView('containerList')<cr>
-
+    call s:RefreshContainerInfo(b:cid)
+    
+    nnoremap <buffer> r :call <SID>RefreshContainerInfo(b:cid)<cr>
+    nnoremap <buffer> q :call <SID>GoToView('containerList')<cr>
+  endif
 endfunction
 
 function! s:RefreshContainerInfo(cid) abort
